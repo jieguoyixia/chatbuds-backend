@@ -20,8 +20,8 @@ public class UserService {
         this.redisRepository = redisRepository;
     }
 
-    public User registerUser(String username, String email) {
-        User user = new User(username, email, false);
+    public User registerUser(String username, String email, String password) {
+        User user = new User(username, email, password,false);
         return userRepository.save(user);
     }
 

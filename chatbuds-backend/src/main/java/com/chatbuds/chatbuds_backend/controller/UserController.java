@@ -21,7 +21,7 @@ public class UserController {
     // Register new user
     @PostMapping
     public User registerUser(@RequestBody User user) {
-        return userService.registerUser(user.getUsername(), user.getEmail());
+        return userService.registerUser(user.getUsername(), user.getEmail(), user.getPassword());
     }
 
     // Get user by ID
@@ -55,4 +55,3 @@ public class UserController {
         userService.deleteUser(id);
     }
 }
-
