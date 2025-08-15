@@ -17,13 +17,16 @@ public class User {
     @Setter
     private String email;
     @Setter
+    private String password;
+    @Setter
     private boolean online;
 
     public User() {}
 
-    public User(String username, String email, boolean online) {
+    public User(String username, String email, String password, boolean online) {
         this.username = username;
         this.email = email;
+        this.password = password;
         this.online = online;
     }
 }
