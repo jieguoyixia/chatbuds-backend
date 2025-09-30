@@ -1,51 +1,39 @@
 package com.chatbuds.chatbuds_backend.controller;
 
-import com.chatbuds.chatbuds_backend.domain.User;
-import com.chatbuds.chatbuds_backend.dto.LoginRequest;
-import com.chatbuds.chatbuds_backend.dto.RegisterRequest;
-import com.chatbuds.chatbuds_backend.repository.UserRepository;
-import com.chatbuds.chatbuds_backend.security.JwtTokenProvider;
+import com.chatbuds.chatbuds_backend.config.JwtUtil;
+import com.chatbuds.chatbuds_backend.model.User;
+import com.chatbuds.chatbuds_backend.service.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepo;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(UserRepository userRepo, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
-        this.userRepo = userRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtTokenProvider = jwtTokenProvider;
+    public AuthController(UserService userService, JwtUtil jwtUtil) {
+        this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
+
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
-        if (userRepo.findByUsername(req.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Username already exists");
-        }
-
-        User user = new User(req.getUsername(), req.getEmail(), req.getPassword(), false);
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        userRepo.save(user);
-
-        return ResponseEntity.ok("User registered");
+    public ResponseEntity<?> register(@RequestBody Map<String,String> body) {
+        User user = userService.register(body.get("username"), body.get("password"));
+        String token = jwtUtil.generateToken(user.getUsername());
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        User user = userRepo.findByUsername(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
-
-        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(401).body("Invalid credentials");
-        }
-
-        String token = jwtTokenProvider.generateToken(user.getUsername());
-        return ResponseEntity.ok().body(token);
+    public ResponseEntity<?> login(@RequestBody Map<String,String> body) {
+        User user = userService.login(body.get("username"), body.get("password"));
+        if (user == null) return ResponseEntity.status(401).body("Invalid credentials");
+        String token = jwtUtil.generateToken(user.getUsername());
+        return ResponseEntity.ok(Map.of("token", token));
     }
+
 }
