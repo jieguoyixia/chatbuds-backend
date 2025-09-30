@@ -13,7 +13,7 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
 
-    @Value("${jwt.refresh-expiration-ms:604800000}") // default 7 days
+    @Value("${jwt.refresh-expiration-ms:604800000}")
     private long refreshExpirationMs;
 
     public RefreshTokenService(RefreshTokenRepository refreshTokenRepository) {
@@ -21,6 +21,8 @@ public class RefreshTokenService {
     }
 
     public RefreshToken createRefreshToken(String username) {
+        // Delete old token if exists
+        refreshTokenRepository.deleteByUsername(username);
         RefreshToken token = new RefreshToken();
         token.setUsername(username);
         token.setToken(UUID.randomUUID().toString());
@@ -39,6 +41,7 @@ public class RefreshTokenService {
     }
 
     public void deleteToken(String token) {
-        refreshTokenRepository.deleteByToken(token);
+        refreshTokenRepository.findByToken(token)
+                .ifPresent(refreshTokenRepository::delete);
     }
 }
