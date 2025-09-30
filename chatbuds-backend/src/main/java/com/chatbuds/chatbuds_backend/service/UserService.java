@@ -16,16 +16,22 @@ public class UserService {
     }
 
     public User register(String username, String password) {
-        String hashed = passwordEncoder.encode(password);
+        if (userRepository.existsByUsername(username)) {
+            throw new IllegalArgumentException("username already exists");
+        }
         User user = new User();
         user.setUsername(username);
-        user.setPassword(hashed);
+        user.setPassword(passwordEncoder.encode(password));
         return userRepository.save(user);
     }
 
-    public User login(String username, String password) {
+    public User authenticate(String username, String rawPassword) {
         return userRepository.findByUsername(username)
-                .filter(u -> passwordEncoder.matches(password, u.getPassword()))
+                .filter(u -> passwordEncoder.matches(rawPassword, u.getPassword()))
                 .orElse(null);
+    }
+
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
     }
 }
