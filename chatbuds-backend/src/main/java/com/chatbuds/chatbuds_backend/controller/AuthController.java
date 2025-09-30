@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -39,4 +41,10 @@ public class AuthController {
         String token = jwtUtil.generateToken(u.getUsername());
         return ResponseEntity.ok(new UserResponseDto(u.getId(), u.getUsername(), token));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully. Please discard your token."));
+    }
+
 }
