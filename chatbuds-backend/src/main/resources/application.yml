@@ -11,5 +11,5 @@ serialization:
 write-dates-as-timestamps: false
 
 jwt:
-secret: mysecretkey123
+secret: myverylongsecretkeythatisatleast32chars!
 expiration-ms: 86400000
