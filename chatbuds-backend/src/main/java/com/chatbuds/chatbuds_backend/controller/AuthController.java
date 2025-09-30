@@ -9,6 +9,8 @@ import com.chatbuds.chatbuds_backend.model.User;
 import com.chatbuds.chatbuds_backend.service.RefreshTokenService;
 import com.chatbuds.chatbuds_backend.service.UserService;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,16 +67,30 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Data
+    public static class TokenRefreshRequest {
+        private String refreshToken;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class TokenRefreshResponse {
+        private String accessToken;
+        private String refreshToken;
+    }
+
     @PostMapping("/refresh")
-    public ResponseEntity<Map<String, String>> refreshToken(@RequestBody Map<String, String> body) {
-        String refreshTokenStr = body.get("refreshToken");
+    public ResponseEntity<TokenRefreshResponse> refreshToken(@RequestBody TokenRefreshRequest request) {
+        String refreshTokenStr = request.getRefreshToken();
         if (refreshTokenStr == null || !refreshTokenService.isValid(refreshTokenStr)) {
-            return ResponseEntity.status(403).body(Map.of("error", "Invalid or expired refresh token"));
+            return ResponseEntity.status(403).build();
         }
 
         String username = refreshTokenService.getUsernameFromToken(refreshTokenStr);
         String newAccessToken = jwtUtil.generateToken(username);
-        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(username);
+
+        return ResponseEntity.ok(new TokenRefreshResponse(newAccessToken, newRefreshToken.getToken()));
     }
 
     @PostMapping("/logout")
