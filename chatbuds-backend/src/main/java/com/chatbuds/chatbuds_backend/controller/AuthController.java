@@ -4,7 +4,9 @@ import com.chatbuds.chatbuds_backend.config.JwtUtil;
 import com.chatbuds.chatbuds_backend.dto.LoginRequestDto;
 import com.chatbuds.chatbuds_backend.dto.UserRequestDto;
 import com.chatbuds.chatbuds_backend.dto.UserResponseDto;
+import com.chatbuds.chatbuds_backend.model.RefreshToken;
 import com.chatbuds.chatbuds_backend.model.User;
+import com.chatbuds.chatbuds_backend.service.RefreshTokenService;
 import com.chatbuds.chatbuds_backend.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,20 +18,14 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
-    public AuthController(UserService userService, JwtUtil jwtUtil) {
+    public AuthController(UserService userService, JwtUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.userService = userService;
         this.jwtUtil = jwtUtil;
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRequestDto dto) {
-        User u = userService.register(dto.getUsername(), dto.getPassword());
-        String token = jwtUtil.generateToken(u.getUsername());
-        return ResponseEntity.ok(new UserResponseDto(u.getId(), u.getUsername(), token));
+        this.refreshTokenService = refreshTokenService;
     }
 
     @PostMapping("/login")
@@ -38,13 +34,54 @@ public class AuthController {
         if (u == null) {
             return ResponseEntity.status(401).build();
         }
-        String token = jwtUtil.generateToken(u.getUsername());
-        return ResponseEntity.ok(new UserResponseDto(u.getId(), u.getUsername(), token));
+
+        String accessToken = jwtUtil.generateToken(u.getUsername());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(u.getUsername());
+
+        UserResponseDto response = new UserResponseDto(
+                u.getId(),
+                u.getUsername(),
+                accessToken,
+                refreshToken.getToken()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRequestDto dto) {
+        User user = userService.register(dto.getUsername(), dto.getPassword());
+
+        String accessToken = jwtUtil.generateToken(user.getUsername());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUsername());
+
+        UserResponseDto response = new UserResponseDto(
+                user.getId(),
+                user.getUsername(),
+                accessToken,
+                refreshToken.getToken()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, String>> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshTokenStr = body.get("refreshToken");
+        if (refreshTokenStr == null || !refreshTokenService.isValid(refreshTokenStr)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Invalid or expired refresh token"));
+        }
+
+        String username = refreshTokenService.getUsernameFromToken(refreshTokenStr);
+        String newAccessToken = jwtUtil.generateToken(username);
+        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        return ResponseEntity.ok(Map.of("message", "Logged out successfully. Please discard your token."));
-    }
+    public ResponseEntity<?> logout(@RequestBody Map<String, String> body) {
+        String refreshTokenStr = body.get("refreshToken");
+        if (refreshTokenStr != null) refreshTokenService.deleteToken(refreshTokenStr);
 
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully. Discard your access token."));
+    }
 }
