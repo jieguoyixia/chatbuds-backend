@@ -1,51 +1,42 @@
 package com.chatbuds.chatbuds_backend.controller;
 
-import com.chatbuds.chatbuds_backend.domain.User;
-import com.chatbuds.chatbuds_backend.dto.LoginRequest;
-import com.chatbuds.chatbuds_backend.dto.RegisterRequest;
-import com.chatbuds.chatbuds_backend.repository.UserRepository;
-import com.chatbuds.chatbuds_backend.security.JwtTokenProvider;
+import com.chatbuds.chatbuds_backend.config.JwtUtil;
+import com.chatbuds.chatbuds_backend.dto.LoginRequestDto;
+import com.chatbuds.chatbuds_backend.dto.UserRequestDto;
+import com.chatbuds.chatbuds_backend.dto.UserResponseDto;
+import com.chatbuds.chatbuds_backend.model.User;
+import com.chatbuds.chatbuds_backend.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepo;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(UserRepository userRepo, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
-        this.userRepo = userRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtTokenProvider = jwtTokenProvider;
+    public AuthController(UserService userService, JwtUtil jwtUtil) {
+        this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
-        if (userRepo.findByUsername(req.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Username already exists");
-        }
-
-        User user = new User(req.getUsername(), req.getEmail(), req.getPassword(), false);
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
-        userRepo.save(user);
-
-        return ResponseEntity.ok("User registered");
+    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRequestDto dto) {
+        User u = userService.register(dto.getUsername(), dto.getPassword());
+        String token = jwtUtil.generateToken(u.getUsername());
+        return ResponseEntity.ok(new UserResponseDto(u.getId(), u.getUsername(), token));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        User user = userRepo.findByUsername(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
-
-        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(401).body("Invalid credentials");
+    public ResponseEntity<UserResponseDto> login(@Valid @RequestBody LoginRequestDto dto) {
+        User u = userService.authenticate(dto.getUsername(), dto.getPassword());
+        if (u == null) {
+            return ResponseEntity.status(401).build();
         }
-
-        String token = jwtTokenProvider.generateToken(user.getUsername());
-        return ResponseEntity.ok().body(token);
+        String token = jwtUtil.generateToken(u.getUsername());
+        return ResponseEntity.ok(new UserResponseDto(u.getId(), u.getUsername(), token));
     }
 }

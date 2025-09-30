@@ -1,0 +1,15 @@
+server:
+port: 8080
+
+spring:
+data:
+mongodb:
+database: chatbuds
+uri: mongodb://localhost:27017/chatbuds
+jackson:
+serialization:
+write-dates-as-timestamps: false
+
+jwt:
+secret: myverylongsecretkeythatisatleast32chars!
+expiration-ms: 86400000
