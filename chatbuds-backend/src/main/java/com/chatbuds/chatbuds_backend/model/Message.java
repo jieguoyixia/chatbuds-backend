@@ -8,13 +8,15 @@ import java.time.Instant;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Document(collection = "messages")
 public class Message {
     @Id
     private String id;
-    private String senderUsername;
-    private String receiverUsername;
+    private String sender;
+    private String recipient;
     private String content;
+
+    @Builder.Default
     private Instant timestamp = Instant.now();
 }
-
