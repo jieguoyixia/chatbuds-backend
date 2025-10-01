@@ -30,8 +30,4 @@ public class UserService {
                 .filter(u -> passwordEncoder.matches(rawPassword, u.getPassword()))
                 .orElse(null);
     }
-
-    public User findByUsername(String username) {
-        return userRepository.findByUsername(username).orElse(null);
-    }
 }
