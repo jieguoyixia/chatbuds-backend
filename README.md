@@ -16,5 +16,7 @@ A backend service that generates and solves mazes using classic pathfinding algo
 ## Quick Start
 
 ### Run Locally
-```bash
 mvn spring-boot:run
+### Run with Docker
+docker build -t maze-solver .
+docker run -p 8080:8080 maze-solver
