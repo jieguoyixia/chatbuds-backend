@@ -1,0 +1,207 @@
+openapi: 3.0.3
+info:
+  title: ChatBuds API
+  version: 1.0.0
+  description: API for ChatBuds backend, including authentication and chat history.
+servers:
+  - url: http://localhost:8080/api
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestDto'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
+        '401':
+          description: Invalid credentials
+
+  /auth/register:
+    post:
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequestDto'
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
+
+  /auth/refresh:
+    post:
+      summary: Refresh JWT access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequestDto'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshResponseDto'
+        '403':
+          description: Invalid or expired refresh token
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /chat/history:
+    get:
+      summary: Retrieve chat history between two users
+      parameters:
+        - in: query
+          name: userA
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: userB
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Chat history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  pageable:
+                    type: object
+                  totalPages:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  last:
+                    type: boolean
+                  first:
+                    type: boolean
+                  sort:
+                    type: object
+                  numberOfElements:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+components:
+  schemas:
+    LoginRequestDto:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    UserRequestDto:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    UserResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+
+    TokenRefreshRequestDto:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required:
+        - refreshToken
+
+    TokenRefreshResponseDto:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        sender:
+          type: string
+        recipient:
+          type: string
+        content:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
